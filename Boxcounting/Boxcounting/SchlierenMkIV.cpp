@@ -17,80 +17,11 @@ cl::CommandQueue queue;
 //const int64_t Resolution = (1 << log2res);
 
 const int TileResolution = 1024;
-const int TileCount = 32;
+const int TileCount = 2;
 const double Scale = 6.0;
 const int Iteration = 1000;
 const double Viewport_x = 0.0;
 const double Viewport_y = 0.0;
-
-void printDevice(int i, cl::Device& d)
-{
-	cout << "Device #" << i << ": \"" << d.getInfo<CL_DEVICE_NAME>() << "\"" << endl;
-	cl_device_type typ = d.getInfo<CL_DEVICE_TYPE>();
-	cout << "Type ";
-	switch (typ) {
-	case CL_DEVICE_TYPE_GPU:
-		cout << "GPU"; break;
-	case CL_DEVICE_TYPE_CPU:
-		cout << "GPU"; break;
-	default:
-		cout << typ; break;
-	}
-	cout << endl;
-	cout << "Vendor: " << d.getInfo<CL_DEVICE_VENDOR>() << endl;
-	cout << "Max Compute Units: " << d.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>() << endl;
-	cout << "Global Memory: " << d.getInfo<CL_DEVICE_GLOBAL_MEM_SIZE>() / (1024 * 1024) << " MByte" << endl;
-	cout << "Max Clock Frequency: " << d.getInfo<CL_DEVICE_MAX_CLOCK_FREQUENCY>() << endl;
-	cout << "Max Allocateable Memory: " << d.getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>() / (1024 * 1024) << " MByte" << endl;
-	cout << "Local Memory: " << d.getInfo<CL_DEVICE_LOCAL_MEM_SIZE>() / 1024 << " KByte" << endl;
-	cout << (d.getInfo< CL_DEVICE_AVAILABLE>() == 1 ? "Available" : "Not available") << endl << endl;
-}
-
-void printPlatform(int i, cl::Platform& p)
-{
-	cout << "Platform #" << i << ": \"" << p.getInfo<CL_PLATFORM_NAME>() << "\"" << endl;
-	cout << "Platform Vendor: " << p.getInfo<CL_PLATFORM_VENDOR>() << endl;
-
-}
-
-void print2D(uint8_t* buffer, int res)
-{
-	for (int i = 0; i < res; i++) {
-		for (int j = 0; j < res; j++) {
-			//cout << (int)buffers[i * Resolution + j];
-			cout << ((buffer[i * res + j] == 1) ? '#' : ' ') << " ";
-		}
-		cout << endl;
-	}
-}
-
-struct Color
-{
-	uint8_t R, G, B, A;
-};
-
-Color white{ 255, 255, 255, 255 };
-Color black{ 0, 0, 0, 255 };
-
-void drawPNG(uint8_t* buffer, int res, string filename, Color yes = black, Color no = white)
-{
-	vector<uint8_t> Image(sizeof(Color) * res * res);
-	Color c;
-
-	for (int i = 0; i < res * res; i++) {
-		c = (buffer[i] == 1) ? yes : no;
-
-		Image[4 * i + 0] = c.R;
-		Image[4 * i + 1] = c.G;
-		Image[4 * i + 2] = c.B;
-		Image[4 * i + 3] = c.A;
-	}
-
-	unsigned error = lodepng::encode(filename, Image, res, res);
-
-	if (error)
-		std::cout << "LodePNG error: " << error << ": " << lodepng_error_text(error) << std::endl;
-}
 
 bool initOpenCL(cl::Device& device, cl::Context& context, cl::Program& prog, cl::CommandQueue& q)
 {
