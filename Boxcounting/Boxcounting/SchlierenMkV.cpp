@@ -16,10 +16,10 @@ cl::CommandQueue queue;
 //const int log2res = 7;
 //const int64_t Resolution = (1 << log2res);
 
-const int TileResolution = 1024;
-const int TileCount = 2;
+const int TileResolution = 8192;
+const int TileCount = 1;
 const double Scale = 6.0;
-const int Iteration = 1000;
+const int Iteration = 100;
 const double Viewport_x = 0.0;
 const double Viewport_y = 0.0;
 
@@ -302,8 +302,13 @@ int main(int argc, char* argv[])
 	cout << "Starting computation" << endl;
 	//testscaledown();
 
+	auto t0 = std::chrono::high_resolution_clock::now();
 	vector<uint32_t> Result = tiling<TileResolution>(TileCount, Iteration, Scale, Viewport_x, Viewport_y);
+	auto t1 = std::chrono::high_resolution_clock::now();
 
+	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+
+	cout << "Finished after " << duration << "ms" << endl;
 
 #ifdef CSV_EXPORT
 #ifndef CSV_APPEND
