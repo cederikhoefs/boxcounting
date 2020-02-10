@@ -6,6 +6,10 @@ double2 C(double2 in){
 	return (double2) (-in.x*in.x+in.y*in.y-in.x,2*in.x*in.y-in.y);
 }
 
+double2 M(double2 pos, double2 pos0){
+	return (double2) (pos.x*pos.x-pos.y*pos.y+pos0.x,2*pos.x*pos.y+pos0.y);
+}
+
 kernel void schlieren( global uchar* schlieren, const double Scale, const int Resolution, const int Iterations, const double vx, const double vy)
 {
 	const int idx = get_global_id(0);
@@ -42,6 +46,46 @@ kernel void schlieren( global uchar* schlieren, const double Scale, const int Re
 	
 	schlieren[idx] = 0;
 }
+
+kernel void mandelbrot( global uchar* schlieren, const double Scale, const int Resolution, const int Iterations, const double vx, const double vy)
+{
+	const int idx = get_global_id(0);
+
+	const int i = idx % Resolution;
+	const int j = idx / Resolution;
+			
+	double delta = 0.5 * (Scale / Resolution);
+
+	double2 pos = (double2) (((double)i / Resolution - 0.5) * Scale + delta - vx, (0.5 - (double)j / Resolution) * Scale - delta - vy);
+	double2 pos0 = pos;
+
+	double2 posdx = pos + (double2) (delta, 0);
+	double2 posdy = pos + (double2) (0, delta);	
+	double2 pos_dx = pos + (double2) (-delta, 0);
+	double2 pos_dy = pos + (double2) (0, -delta);	
+	
+	double2 posdx0 = posdx;
+	double2 pos_dx0 = pos_dx;
+	double2 posdy0 = posdy;
+	double2 pos_dy0 = pos_dy;
+
+	for (int k = 0; k < Iterations; k++) {
+
+		posdx = M(posdx, posdx0);
+		pos_dx = M(pos_dx, pos_dx0);
+		posdy = M(posdy, posdy0);
+		pos_dy = M(pos_dy, pos_dy0);
+
+		if ((sign(length(posdx)-2.0) != sign(length(pos_dx)-2.0)) || (sign(length(posdy)-2.0) != sign(length(pos_dy)-2.0)))
+		
+			schlieren[idx] = 1;
+			return;
+
+		}
+	
+	schlieren[idx] = 0;
+}
+
 
 
 kernel void scaledown(global uchar * oldbuffer, global uchar * newbuffer, const int oldres){ 

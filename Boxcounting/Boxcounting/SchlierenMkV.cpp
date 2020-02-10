@@ -16,10 +16,10 @@ cl::CommandQueue queue;
 //const int log2res = 7;
 //const int64_t Resolution = (1 << log2res);
 
-const int TileResolution = 8192;
-const int TileCount = 1;
+const int TileResolution = 1024;
+const int TileCount = 4;
 const double Scale = 6.0;
-const int Iteration = 100;
+const int Iteration = 1000;
 const double Viewport_x = 0.0;
 const double Viewport_y = 0.0;
 
@@ -101,7 +101,7 @@ void calculate(uint8_t* schlieren, int32_t res, int32_t iter, double scale = 6.0
 {
 	cl::Buffer schlierenbuffer(context, CL_MEM_READ_WRITE, sizeof(uint8_t) * res * res);
 
-	cl::Kernel kernel = cl::Kernel(program, "schlieren");
+	cl::Kernel kernel = cl::Kernel(program, "mandelbrot");
 	kernel.setArg(0, schlierenbuffer);
 	kernel.setArg(1, scale);
 	kernel.setArg(2, res);
