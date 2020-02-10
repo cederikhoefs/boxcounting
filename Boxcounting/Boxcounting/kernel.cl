@@ -76,13 +76,15 @@ kernel void mandelbrot( global uchar* schlieren, const double Scale, const int R
 		posdy = M(posdy, posdy0);
 		pos_dy = M(pos_dy, pos_dy0);
 
-		if ((sign(length(posdx)-2.0) != sign(length(pos_dx)-2.0)) || (sign(length(posdy)-2.0) != sign(length(pos_dy)-2.0)))
+		if ((sign(length(posdx)-2.0) != sign(length(pos_dx)-2.0)) || (sign(length(posdy)-2.0) != sign(length(pos_dy)-2.0))){
 		
 			schlieren[idx] = 1;
 			return;
 
 		}
-	
+
+	}
+
 	schlieren[idx] = 0;
 }
 

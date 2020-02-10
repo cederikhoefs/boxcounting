@@ -3,6 +3,7 @@
 
 //#define STD_EXPORT
 #define CSV_EXPORT
+#define PNG_TILE_EXPORT
 #undef CSV_APPEND
 
 using namespace std;
@@ -16,11 +17,11 @@ cl::CommandQueue queue;
 //const int log2res = 7;
 //const int64_t Resolution = (1 << log2res);
 
-const int TileResolution = 1024;
-const int TileCount = 4;
-const double Scale = 6.0;
+const int TileResolution = 4096;
+const int TileCount = 1;
+const double Scale = 3.0;
 const int Iteration = 1000;
-const double Viewport_x = 0.0;
+const double Viewport_x = 1.0;
 const double Viewport_y = 0.0;
 
 bool initOpenCL(cl::Device& device, cl::Context& context, cl::Program& prog, cl::CommandQueue& q)
@@ -251,6 +252,10 @@ vector<uint32_t> tiling(uint32_t resintiles = 16, int32_t iteration = 1000, doub
 				cout << clErrInfo(e) << endl;
 				exit(-1);
 			}
+
+#ifdef PNG_TILE_EXPORT
+			drawPNG(TileA, TileSize, "k="+to_string(iteration) + "tile=" + to_string(TileSize) + "(" + to_string(i) + ";" + to_string(j) + ").png");
+#endif
 
 			for (int d = 0; d < log2tilesize; d++) {
 
