@@ -142,3 +142,32 @@ void drawPNG(uint8_t* buffer, int res, string filename, Color yes, Color no)
 	if (error)
 		std::cout << "LodePNG error: " << error << ": " << lodepng_error_text(error) << std::endl;
 }
+
+uint32_t product(vector<uint32_t> v) {
+	uint32_t p = 1;
+	for(auto a : v){
+		p *= a;
+	}
+	return p;
+}
+
+vector<uint32_t> factorize(uint32_t n) {  // very naive approach
+	vector<uint32_t> factors;
+
+	while (n % 2 == 0) {		// get rid of even factors
+		n /= 2;
+		factors.push_back(2);
+	}
+
+	for (uint32_t i = 3; i <= sqrt(n); i += 2) {
+		while (n % i == 0) {
+			factors.push_back(i);
+			n /= i;
+		}
+	}
+
+	if (n > 2)
+		factors.push_back(n);
+
+	return factors;
+}
