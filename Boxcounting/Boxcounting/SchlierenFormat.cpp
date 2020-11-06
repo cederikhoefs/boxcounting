@@ -27,7 +27,7 @@ SchlierenFile::SchlierenFile(ifstream& inputfile)
 	inputfile.read((char*)(&Viewport_y), sizeof(Viewport_y));
 
 	data = new iter_t[Resolution * Resolution];
-	inputfile.read((char*)data, sizeof(iter_t) * Resolution * Resolution);
+	inputfile.read((char*)data, (sizeof(iter_t) * (uint64_t)Resolution * Resolution));
 
 }
 
@@ -85,7 +85,7 @@ void SchlierenFile::toPNG(string filename, int k)
 		std::cout << "LodePNG error: " << error << ": " << lodepng_error_text(error) << std::endl;
 	}
 
-ostream& operator << (ostream& os, SchlierenFile f) {
+ostream& operator << (ostream& os, SchlierenFile& f) {
 	os << "[" << f.Resolution << "x" << f.Resolution << "]" \
 		<< " = [" << f.Scale << "x" << f.Scale << "] @(" << f.Viewport_x << "|" << f.Viewport_y << "); k <= " << f.MaxIteration << endl;
 	return os;

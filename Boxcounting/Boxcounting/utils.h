@@ -16,5 +16,5 @@ extern void printPlatform(int i, cl::Platform& p);
 extern void print2D(uint8_t* buffer, int res);
 extern void drawPNG(uint8_t* buffer, int res, std::string filename, Color yes = black, Color no = white);
 
-extern uint32_t product(vector<uint32_t> v);
-extern vector<uint32_t> factorize(uint32_t);
+extern uint32_t product(multiset<uint32_t> v);
+extern multiset<uint32_t> factorize(uint32_t);

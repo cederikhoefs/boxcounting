@@ -143,31 +143,31 @@ void drawPNG(uint8_t* buffer, int res, string filename, Color yes, Color no)
 		std::cout << "LodePNG error: " << error << ": " << lodepng_error_text(error) << std::endl;
 }
 
-uint32_t product(vector<uint32_t> v) {
+uint32_t product(multiset<uint32_t> s) {
 	uint32_t p = 1;
-	for(auto a : v){
-		p *= a;
+	for(auto& f : s){
+		p *= f;
 	}
 	return p;
 }
 
-vector<uint32_t> factorize(uint32_t n) {  // very naive approach
-	vector<uint32_t> factors;
+multiset<uint32_t> factorize(uint32_t n) {  // very naive approach
+	multiset<uint32_t> factors;
 
 	while (n % 2 == 0) {		// get rid of even factors
 		n /= 2;
-		factors.push_back(2);
+		factors.insert(2);
 	}
 
 	for (uint32_t i = 3; i <= sqrt(n); i += 2) {
 		while (n % i == 0) {
-			factors.push_back(i);
+			factors.insert(i);
 			n /= i;
 		}
 	}
 
 	if (n > 2)
-		factors.push_back(n);
+		factors.insert(n);
 
 	return factors;
 }

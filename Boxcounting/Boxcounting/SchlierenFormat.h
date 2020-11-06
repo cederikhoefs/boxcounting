@@ -3,7 +3,7 @@
 
 using namespace std;
 
-typedef uint8_t iter_t;
+typedef uint16_t iter_t;
 
 class SchlierenFile {
 public:
@@ -25,4 +25,4 @@ public:
 	void toPNG(string filename, int k);
 };
 
-ostream& operator << (ostream& os, SchlierenFile f);
+ostream& operator << (ostream& os, SchlierenFile& f);

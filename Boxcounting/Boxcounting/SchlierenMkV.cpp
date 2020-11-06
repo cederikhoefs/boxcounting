@@ -4,13 +4,15 @@
 using namespace std;
 using namespace std::chrono;
 
+#define MANUAL
 
 cl::Device device;
 cl::Context context;
 cl::Program program;
 cl::CommandQueue queue;
+cl::Kernel kernel_scaledown_N;
 
-vector<uint32_t> Factors;
+multiset<uint32_t> Factors;
 uint32_t Resolution;
 uint32_t MaxIteration;
 const double Scale = 6.0;
@@ -101,6 +103,9 @@ bool initOpenCL(cl::Device& device, cl::Context& context, cl::Program& prog, cl:
 	cout << "Creating command queue" << endl;
 	q = cl::CommandQueue(context, device);
 
+	kernel_scaledown_N= cl::Kernel(program, "scaledown_N");
+
+
 	cout << "InitOpenCL finished!" << endl;
 
 	return true;
@@ -108,8 +113,6 @@ bool initOpenCL(cl::Device& device, cl::Context& context, cl::Program& prog, cl:
 
 void generate_schlieren(SchlierenFile& s)
 {
-	//cout << "Generating " << "[" << s.Resolution << "x" << s.Resolution << "] buffer with k <= " << s.MaxIteration << endl;
-
 	cl::Buffer schlierenbuffer(context, CL_MEM_READ_WRITE, sizeof(iter_t) * s.Resolution * s.Resolution);
 
 	cl::Kernel kernel = cl::Kernel(program, "schlieren");
@@ -119,73 +122,124 @@ void generate_schlieren(SchlierenFile& s)
 	kernel.setArg(3, (cl_int)s.MaxIteration);
 	kernel.setArg(4, (double)s.Viewport_x);
 	kernel.setArg(5, (double)s.Viewport_y);
+	
+	cout << "Generating " << "[" << s.Resolution << "x" << s.Resolution << "] buffer with k <= " << s.MaxIteration << endl;
+
 
 	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(s.Resolution * s.Resolution), cl::NullRange);
 	queue.finish();
 	queue.enqueueReadBuffer(schlierenbuffer, CL_TRUE, 0, sizeof(iter_t) * s.Resolution * s.Resolution, s.data);
 }
 
-
-void scaledown(iter_t* schlieren_old, iter_t* schlieren_new, int oldres)
+void scaledown_N(iter_t* buffer, iter_t* buffer_new, uint32_t oldres, uint32_t N)
 {
-	int newres = oldres / 2;
-	cl::Buffer oldbuffer(context, CL_MEM_READ_WRITE, sizeof(iter_t) * oldres * oldres);
-	cl::Buffer newbuffer(context, CL_MEM_READ_WRITE, sizeof(iter_t) * newres * newres);
+	uint32_t newres = oldres / N;
 
-	cl::Kernel kernel = cl::Kernel(program, "scaledown");
+	cl::Buffer D_buffer(context, CL_MEM_READ_WRITE, sizeof(iter_t) * oldres * oldres);
+	cl::Buffer D_buffer_new(context, CL_MEM_READ_WRITE, sizeof(iter_t) * newres * newres);
 
-	kernel.setArg(0, oldbuffer);
-	kernel.setArg(1, newbuffer);
-	kernel.setArg(2, oldres);
+	kernel_scaledown_N.setArg(0, D_buffer);
+	kernel_scaledown_N.setArg(1, D_buffer_new);
+	kernel_scaledown_N.setArg(2, oldres);
+	kernel_scaledown_N.setArg(3, N);
 
-	queue.enqueueWriteBuffer(oldbuffer, CL_FALSE, 0, sizeof(iter_t) * oldres * oldres, schlieren_old);
-	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(newres * newres), cl::NullRange/*cl::NDRange(newres)*/);
+	queue.enqueueWriteBuffer(D_buffer, CL_FALSE, 0, sizeof(iter_t) * oldres * oldres, buffer);
+	queue.enqueueNDRangeKernel(kernel_scaledown_N, cl::NullRange, cl::NDRange(newres * newres), cl::NullRange/*cl::NDRange(newres)*/);
 	queue.finish();
-	queue.enqueueReadBuffer(newbuffer, CL_TRUE, 0, sizeof(iter_t) * newres * newres, schlieren_new);
+	queue.enqueueReadBuffer(D_buffer_new, CL_TRUE, 0, sizeof(iter_t) * newres * newres, buffer_new);
 }
 
-int sumup(iter_t* schlieren, int res)
+
+//void scaledown(iter_t* schlieren_old, iter_t* schlieren_new, int oldres)
+//{
+//	int newres = oldres / 2;
+//	cl::Buffer oldbuffer(context, CL_MEM_READ_WRITE, sizeof(iter_t) * oldres * oldres);
+//	cl::Buffer newbuffer(context, CL_MEM_READ_WRITE, sizeof(iter_t) * newres * newres);
+//
+//	cl::Kernel kernel = cl::Kernel(program, "scaledown");
+//
+//	kernel.setArg(0, oldbuffer);
+//	kernel.setArg(1, newbuffer);
+//	kernel.setArg(2, oldres);
+//
+//	queue.enqueueWriteBuffer(oldbuffer, CL_FALSE, 0, sizeof(iter_t) * oldres * oldres, schlieren_old);
+//	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(newres * newres), cl::NullRange/*cl::NDRange(newres)*/);
+//	queue.finish();
+//	queue.enqueueReadBuffer(newbuffer, CL_TRUE, 0, sizeof(iter_t) * newres * newres, schlieren_new);
+//}
+
+//uint32_t sumup(iter_t* schlieren, uint32_t res)
+//{
+//	cl::Kernel firstredux = cl::Kernel(program, "firstsum");
+//	cl::Kernel redux = cl::Kernel(program, "sum");
+//
+//	cl::Buffer origin(context, CL_MEM_READ_WRITE, sizeof(uint8_t) * res * res);
+//	cl::Buffer buf1(context, CL_MEM_READ_WRITE, sizeof(uint32_t) * res/2 * res/2);
+//	cl::Buffer buf2(context, CL_MEM_READ_WRITE, sizeof(uint32_t) * res/4 * res/4);
+//
+//	queue.enqueueWriteBuffer(origin, CL_FALSE, 0, sizeof(uint8_t) * res * res, schlieren);
+//
+//	firstredux.setArg(0, res);
+//	firstredux.setArg(1, origin);
+//	firstredux.setArg(2, buf1);
+//	queue.enqueueNDRangeKernel(firstredux, cl::NullRange, cl::NDRange(res/2 * res/2));
+//	queue.finish();
+//
+//	cl::Buffer *from = &buf1, *to = &buf2;
+//
+//	res /= 2;
+//	for (; res > 1; res = res/2) {
+//		redux.setArg(0, res);
+//		redux.setArg(1, *from);
+//		redux.setArg(2, *to);
+//		queue.enqueueNDRangeKernel(redux, cl::NullRange, cl::NDRange(res/2 * res/2));
+//		queue.finish();
+//		swap(from, to);
+//	}
+//
+//	uint32_t result = -1;
+//	queue.enqueueReadBuffer(*from, CL_TRUE, 0, sizeof(uint32_t) * 1, &result);
+//	return result;
+//}
+
+uint32_t cpu_sumup(iter_t* schlieren, uint32_t res, uint32_t k)
 {
-	cl::Kernel firstredux = cl::Kernel(program, "firstsum");
-	cl::Kernel redux = cl::Kernel(program, "sum");
-
-	cl::Buffer origin(context, CL_MEM_READ_WRITE, sizeof(uint8_t) * res * res);
-	cl::Buffer buf1(context, CL_MEM_READ_WRITE, sizeof(uint32_t) * res/2 * res/2);
-	cl::Buffer buf2(context, CL_MEM_READ_WRITE, sizeof(uint32_t) * res/4 * res/4);
-
-	queue.enqueueWriteBuffer(origin, CL_FALSE, 0, sizeof(uint8_t) * res * res, schlieren);
-
-	firstredux.setArg(0, res);
-	firstredux.setArg(1, origin);
-	firstredux.setArg(2, buf1);
-	queue.enqueueNDRangeKernel(firstredux, cl::NullRange, cl::NDRange(res/2 * res/2));
-	queue.finish();
-
-	cl::Buffer *from = &buf1, *to = &buf2;
-
-	res /= 2;
-	for (; res > 1; res = res/2) {
-		redux.setArg(0, res);
-		redux.setArg(1, *from);
-		redux.setArg(2, *to);
-		queue.enqueueNDRangeKernel(redux, cl::NullRange, cl::NDRange(res/2 * res/2));
-		queue.finish();
-		swap(from, to);
-	}
-
-	uint32_t result = -1;
-	queue.enqueueReadBuffer(*from, CL_TRUE, 0, sizeof(uint32_t) * 1, &result);
-	return result;
-}
-
-int cpu_sumup(iter_t* schlieren, int res)
-{
-	int sum = 0;
+	cout << "SUMUP" << endl;
+	uint32_t N = 0;
 	for (int i = 0; i < res; i++)
 		for (int j = 0; j < res; j++)
-			sum += schlieren[j * res + i];
+			N += (schlieren[j * res + i] <= k)? 1: 0;
 
-	return sum;
+	return N;
+}
+
+map<uint32_t, vector<uint32_t>>& TreeScaledown(iter_t *buffer, multiset<uint32_t> factors, map<uint32_t, vector<uint32_t>>& m, uint32_t kmax = 100)
+{
+	uint32_t Resolution = product(factors);
+	if (m.find(Resolution) != m.end()) { // been there, done that
+		return m;
+	}
+
+	vector<uint32_t> ksumup(kmax);
+	for (int k = 0; k < kmax; k++) {
+		ksumup[k] = cpu_sumup(buffer, Resolution, k);
+	}
+	m[Resolution] = ksumup;
+
+	for (auto& factor : factors) {
+		multiset<uint32_t> diffthat{ factor };
+		multiset<uint32_t> down_factors;
+		set_difference(factors.begin(), factors.end(), diffthat.begin(), diffthat.end(),
+			std::inserter(down_factors, down_factors.begin()));
+
+		iter_t* down_buffer = new iter_t[(Resolution / factor) * (Resolution / factor)];
+		scaledown_N(buffer, down_buffer, Resolution, factor);
+
+		TreeScaledown(down_buffer, down_factors, m);
+		delete[] down_buffer;
+
+	}	
+	return m;
 }
 
 int main(int argc, char* argv[])
@@ -215,9 +269,41 @@ int main(int argc, char* argv[])
 		SchlierenFile schlierenfile(inputfile);
 		cout << "Opened SchlierenFile" << endl;
 		cout << schlierenfile << endl;
-		
-		Factors = factorize(schlierenfile.Resolution);
+
+		multiset<uint32_t> Factors = factorize(schlierenfile.Resolution);
 		cout << "Got factors" << endl;
+
+		for (auto& f : Factors) {
+			cout << f << endl;
+		}
+
+		map<uint32_t, vector<uint32_t>> result;
+
+		TreeScaledown(schlierenfile.data, Factors, result);
+		
+		/*
+		cout << "PNG-Export?: ";
+		cin >> answer;
+
+		if (answer == "Y") {
+			int k = 0;
+			cout << "Cutoff iteration: ";
+			cin >> k;
+			if (k >= schlierenfile.MaxIteration) {
+				cout << "Bigger than maximal iteration present in file!" << endl;
+				return EXIT_FAILURE;
+			}
+
+			cout << "Filename: ";
+			cin >> answer;
+
+			schlierenfile.toPNG(answer, k);
+
+		}
+		*/
+
+
+
 		return EXIT_SUCCESS;
 	
 	}
@@ -248,8 +334,9 @@ int main(int argc, char* argv[])
 		for (int i = 0; i < factorcount; i++) {
 			cout << "Factor #" << i << ": ";
 			cin >> factor;
-			Factors.push_back(factor);
+			Factors.insert(factor);
 		}
+		
 		Resolution = product(Factors);
 						
 		SchlierenFile schlierenfile(Resolution, MaxIteration, Scale, Viewport_x, Viewport_y);

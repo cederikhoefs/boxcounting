@@ -1,4 +1,4 @@
-typedef uchar iter_t;
+typedef ushort iter_t;
 
 double2 P(double2 in){
 	return (double2) (-in.x-in.y,in.x*in.y);
@@ -106,10 +106,10 @@ kernel void schlieren(global iter_t *schlieren, const double Scale, const uint R
 }
 
 
-kernel void scaledown_N(global iter_t *oldbuffer, global iter_t *newbuffer, const int oldres, const int N){ 
+kernel void scaledown_N(global iter_t* oldbuffer, global iter_t* newbuffer, const uint oldres, const uint N){ 
 
 	const int idx = get_global_id(0);
-	int newres = oldres / N;
+	const uint newres = oldres / N;
 	
 	const int i = idx % newres;
 	const int j = idx / newres;

@@ -11,7 +11,10 @@
 #include "lodepng.h"
 
 #include <iostream>
+#include <algorithm>
 #include <string>
+#include <set>
+#include <map>
 #include <fstream>
 #include <vector>
 #include <memory>
